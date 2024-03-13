@@ -1,64 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=2.0">
-<meta charset="UTF-8">
-<title>Play Sound Every X Minutes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=3.0">
+    <meta charset="UTF-8">
+    <title>Play Sound Every X Minutes</title>
 </head>
 <body>
-<h2>v1.0.0</h2>
+<h2>v1.0.2</h2>
 <button onclick="startPlaying()">Start</button>
 <br>
 <button onclick="stopPlaying()">Stop</button>
 <div id="timer">***</div>
+<div id="total">Total time: 00:00</div>
 
 <script>
-let intervalID;
-let countdownID;
-let cycleTime = 60;
-let timeLeft = cycleTime;
-let wakeLock = null;
+    let intervalID;
+    let cycleTime = 60;
+    let timeLeft = cycleTime;
+    let wakeLock = null;
+    let startTime;
 
-async function playSound() {
-    const audio = new Audio('singing-bowl-gong-69238.mp3');
-    audio.play();
-}
+    async function playSound() {
+        const audio = new Audio('singing-bowl-gong-69238.mp3');
+        audio.play();
+    }
 
-function updateTimer() {
-    let minutes = Math.floor(timeLeft / 60);
-    let seconds = timeLeft % 60;
-    document.getElementById('timer').textContent =
-        (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-}
+    function formatTime(seconds) {
+        if (seconds < 0 || seconds === undefined || isNaN(seconds))
+            seconds = 0; // Prevent negative time
+        let minutes = Math.floor(seconds / 60);
+        let remainingSeconds = seconds % 60;
+        return (minutes < 10 ? '0' : '') + minutes + ':' + (remainingSeconds < 10 ? '0' : '') + remainingSeconds;
+    }
 
-function countdown() {
-    if (timeLeft === 0) {
+    function updateTimer() {
+        document.getElementById('timer').textContent = formatTime(timeLeft);
+
+        let elapsed = Math.floor((Date.now() - startTime) / 1000); // Total seconds elapsed
+        document.getElementById('total').textContent = 'Total time: ' + formatTime(elapsed);
+    }
+
+    function countdown() {
+        if (timeLeft === 0) {
+            playSound();
+            timeLeft = cycleTime; // reset timer
+        } else {
+            timeLeft--;
+        }
+        updateTimer();
+    }
+
+    async function startPlaying() {
         playSound();
-        timeLeft = cycleTime; // reset timer
-    } else {
-        timeLeft--;
+        startTime = Date.now(); // Record start time
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request("screen");
+        }
+        intervalID = setInterval(countdown, 1000); // update timer every second
+        updateTimer(); // Initial call to update both timers
     }
-    updateTimer();
-}
 
-async function startPlaying() {
-    playSound();
-    if ('wakeLock' in navigator) {
-        wakeLock = await navigator.wakeLock.request("screen");
+    async function stopPlaying() {
+        clearInterval(intervalID);
+        timeLeft = cycleTime;
+        updateTimer();
+        if (wakeLock !== null) {
+            await wakeLock.release();
+            wakeLock = null;
+        }
     }
-    intervalID = setInterval(countdown, 1000); // update timer every second
-}
 
-async function stopPlaying() {
-    clearInterval(intervalID);
-    timeLeft = cycleTime;
-    updateTimer();
-    if (wakeLock !== null) {
-        await wakeLock.release();
-        wakeLock = null;
-    }
-}
-updateTimer();
+    updateTimer(); // Initial update for both timers
 </script>
 
 </body>
