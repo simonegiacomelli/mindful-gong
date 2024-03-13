@@ -34,18 +34,16 @@
     }
 
     function updateTimer() {
-        document.getElementById('timer').textContent = formatTime(timeLeft);
-
         let elapsed = Math.floor((Date.now() - startTime) / 1000); // Total seconds elapsed
+        timeLeft = cycleTime - elapsed;
+        document.getElementById('timer').textContent = formatTime(timeLeft);
         document.getElementById('total').textContent = 'Total time: ' + formatTime(elapsed);
     }
 
     function countdown() {
-        if (timeLeft === 0) {
+        if (timeLeft <= 0) {
             playSound();
-            timeLeft = cycleTime; // reset timer
-        } else {
-            timeLeft--;
+            startTime = Date.now(); // reset start time
         }
         updateTimer();
     }
