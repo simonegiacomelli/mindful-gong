@@ -6,17 +6,19 @@
     <title>Play Sound Every X Minutes</title>
 </head>
 <body>
-<h2>v1.0.3</h2>
+<h2>v1.0.6</h2>
 <button onclick="startPlaying()">Start</button>
 <br>
 <button onclick="stopPlaying()">Stop</button>
-<div id="timer">***</div>
-<div id="total">Total time: 00:00</div>
+<br>
+<br>
+<div id="countdown">#</div>
+<br>
+<div id="totalTime">#</div>
 
 <script>
     let intervalID;
     let cycleTime = 60;
-    let timeLeft = cycleTime;
     let wakeLock = null;
     let startTime;
 
@@ -33,42 +35,43 @@
         return (minutes < 10 ? '0' : '') + minutes + ':' + (remainingSeconds < 10 ? '0' : '') + remainingSeconds;
     }
 
-    function updateTimer() {
-        let elapsed = Math.floor((Date.now() - startTime) / 1000); // Total seconds elapsed
-        timeLeft = cycleTime - elapsed;
-        document.getElementById('timer').textContent = formatTime(timeLeft);
-        document.getElementById('total').textContent = 'Total time: ' + formatTime(elapsed);
+    function updateUi(countDown, totalTime) {
+        document.getElementById('countdown').innerHTML = 'Cycle end:<br>' + formatTime(countDown);
+        document.getElementById('totalTime').innerHTML = 'Total time:<br>' + formatTime(totalTime);
     }
 
-    function countdown() {
-        if (timeLeft <= 0) {
-            playSound();
-            startTime = Date.now(); // reset start time
-        }
-        updateTimer();
+    function timerTick() {
+        let elapsed = Math.floor((Date.now() - startTime) / 1000); // Total seconds elapsed
+        let cycleUsed = elapsed % cycleTime;
+        if (cycleUsed === 0)
+            playSound()
+        updateUi(cycleTime - cycleUsed, elapsed);
     }
+
 
     async function startPlaying() {
-        playSound();
         startTime = Date.now(); // Record start time
+        timerTick(); // Initial call to update both timers
         if ('wakeLock' in navigator) {
             wakeLock = await navigator.wakeLock.request("screen");
         }
-        intervalID = setInterval(countdown, 1000); // update timer every second
-        updateTimer(); // Initial call to update both timers
+        intervalID = setInterval(timerTick, 1000); // update timer every second
+    }
+
+    function resetUi() {
+        updateUi(cycleTime, 0);
     }
 
     async function stopPlaying() {
         clearInterval(intervalID);
-        timeLeft = cycleTime;
-        updateTimer();
+        resetUi();
         if (wakeLock !== null) {
             await wakeLock.release();
             wakeLock = null;
         }
     }
 
-    updateTimer(); // Initial update for both timers
+    resetUi(); // Initial update for both timers
 </script>
 
 </body>
